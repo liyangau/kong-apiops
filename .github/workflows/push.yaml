@@ -1,0 +1,101 @@
+name: Kong APIOps
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy_to_kong:
+    name: kong
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        files:
+          - petstore
+    env:
+      ADMIN_API_TOKEN: ${{ secrets.ADMIN_API_TOKEN }}
+      ADMIN_API_URL: ${{ secrets.ADMIN_API_URL }}
+      SPEC_FILE_NAME: ${{ matrix.files }}
+      DECK_VERSION: ${{ env.DECK_VERSION }}
+      WORKSPACE_NAME: ${{ env.WORKSPACE_NAME }}
+      INSO_CLI_VERSION: ${{ env.INSO_CLI_VERSION }}
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+      - name: Setup nodeJS runtime
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16
+      - name: Install Deck
+        run: |
+          curl -sL https://github.com/Kong/deck/releases/download/v${DECK_VERSION}/deck_${DECK_VERSION}_linux_amd64.tar.gz -o deck.tar.gz
+          tar -xf deck.tar.gz -C /tmp
+          sudo cp /tmp/deck /usr/local/bin/
+      - name: Install Inso CLI
+        run: |
+          curl -sL https://github.com/Kong/insomnia/releases/download/lib%40${INSO_CLI_VERSION}/inso-linux-${INSO_CLI_VERSION}.tar.xz -o inso.tar.gz
+          tar -xf inso.tar.gz -C /tmp
+          sudo cp /tmp/inso /usr/local/bin/
+      - name: Generate Kong declarative configuration from Spec
+        run: |
+          inso generate config \
+            --kongVersion 3 \
+            --tags $SPEC_FILE_NAME \
+            --output $SPEC_FILE_NAME-output.yaml \
+            ./openapi/$SPEC_FILE_NAME.yaml
+      - name: Check Control plane is reachable
+        run: |
+          deck ping \
+            --headers "Kong-Admin-Token:$ADMIN_API_TOKEN" \
+            --kong-addr "$ADMIN_API_URL"
+      - name: Validate generated config with deck
+        run: deck validate --state $SPEC_FILE_NAME-output.yaml
+      - name: Validate generated config with deck
+        run: deck validate --state "$SPEC_FILE_NAME-output.yaml"
+      - name: Check differences with current config
+        run: |
+          deck diff \
+            --headers "Kong-Admin-Token:$ADMIN_API_TOKEN" \
+            --kong-addr "$ADMIN_API_URL" \
+            --workspace "$WORKSPACE_NAME" \
+            --state "$SPEC_FILE_NAME-output.yaml"
+      - name: Sync current config
+        run: |
+          deck sync \
+            --headers "Kong-Admin-Token:$ADMIN_API_TOKEN" \
+            --kong-addr "$ADMIN_API_URL" \
+            --workspace "$WORKSPACE_NAME" \
+            --state "$SPEC_FILE_NAME-output.yaml"
+
+  deploy_to_dev_portal:
+    name: dev-portal
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        files:
+          - petstore
+          # - httpbin
+          # - orders
+    env:
+      ADMIN_API_TOKEN: ${{ secrets.ADMIN_API_TOKEN }}
+      ADMIN_API_URL: ${{ secrets.ADMIN_API_URL }}
+      SPEC_FILE_NAME: ${{ matrix.files }}
+      WORKSPACE_NAME: ${{ env.WORKSPACE_NAME }}
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v2
+      - name: Remove all plugins from spec file to be published to dev portal
+        uses: mikefarah/yq@master
+        with:
+          cmd: cat ./openapi/$SPEC_FILE_NAME.yaml | yq e 'del(.x-kong-plugin-*)' > ./openapi/$SPEC_FILE_NAME-dev-portal-tmp.yaml
+      - name: Update server name to Kong Gateway Proxy url
+        uses: mikefarah/yq@master
+        with:
+          cmd: cat ./openapi/$SPEC_FILE_NAME-dev-portal-tmp.yaml | yq e 'del(.servers)' | yq e '.servers=[{"url":"http://localhost:8000"}]' > ./openapi/$SPEC_FILE_NAME-dev-portal.yaml
+      - name: Push spec to dev portal
+        run: |
+          curl -X PUT \
+            --url "$ADMIN_API_URL/$WORKSPACE_NAME/files/specs/$SPEC_FILE_NAME.yaml" \
+            --header "Kong-Admin-Token:$ADMIN_API_TOKEN" \
+            --form contents=@openapi/$SPEC_FILE_NAME-dev-portal.yaml
