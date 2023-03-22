@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy_to_kong:
-    name: kong
+    name: config-sync
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -52,8 +52,6 @@ jobs:
             --kong-addr "$ADMIN_API_URL"
       - name: Validate generated config with deck
         run: deck validate --state $SPEC_FILE_NAME-output.yaml
-      - name: Validate generated config with deck
-        run: deck validate --state "$SPEC_FILE_NAME-output.yaml"
       - name: Check differences with current config
         run: |
           deck diff \
@@ -72,7 +70,7 @@ jobs:
             --state "$SPEC_FILE_NAME-output.yaml"
 
   deploy_to_dev_portal:
-    name: dev-portal
+    name: devPortal-sync
     runs-on: ubuntu-latest
     strategy:
       matrix:
