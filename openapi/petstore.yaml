@@ -11,7 +11,7 @@ info:
     - [The Pet Store repository](https://github.com/swagger-api/swagger-petstore)
     - [The source API definition for the Pet Store](https://github.com/swagger-api/swagger-petstore/blob/master/src/main/resources/openapi.yaml)
   version: 1.0.17
-  title: Swagger Petstore
+  title: Petstore
   termsOfService: 'http://swagger.io/terms/'
   contact:
     email: apiteam@swagger.io
@@ -31,38 +31,50 @@ x-kong-plugin-cors:
     origins:
       - "*"
 
+x-kong-plugin-application-registration:
+  enabled: true
+  config:
+    auto_approve: true
+    description: Petstore service
+    display_name: Petstore
+
+x-kong-plugin-key-auth:
+  enabled: true
+
 paths:
   /pet:
-    options:
-      tags:
-        - pet
-      summary: Add a new pet to the store
-      description: Add a new pet to the store
-      operationId: preFlightAddPet
-      responses:
-        '200':
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pet'
-            application/xml:
-              schema:
-                $ref: '#/components/schemas/Pet'
-      requestBody:
-        description: Create a new pet in the store
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Pet'
-          application/xml:
-            schema:
-              $ref: '#/components/schemas/Pet'
-          application/x-www-form-urlencoded:
-            schema:
-              $ref: '#/components/schemas/Pet'
+    # options:
+    #   tags:
+    #     - pet
+    #   summary: Add a new pet to the store
+    #   description: Add a new pet to the store
+    #   operationId: preFlightAddPet
+    #   responses:
+    #     '200':
+    #       description: Successful operation
+    #       content:
+    #         application/json:
+    #           schema:
+    #             $ref: '#/components/schemas/Pet'
+    #         application/xml:
+    #           schema:
+    #             $ref: '#/components/schemas/Pet'
+    #   requestBody:
+    #     description: Create a new pet in the store
+    #     required: true
+    #     content:
+    #       application/json:
+    #         schema:
+    #           $ref: '#/components/schemas/Pet'
+    #       application/xml:
+    #         schema:
+    #           $ref: '#/components/schemas/Pet'
+    #       application/x-www-form-urlencoded:
+    #         schema:
+    #           $ref: '#/components/schemas/Pet'
     post:
+      # security:
+      #   - keyauth: []
       tags:
         - pet
       summary: Add a new pet to the store
@@ -107,9 +119,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Pet'
             application/xml:
-              schema:      # security:
-      #   - keyauth: []
-              $ref: '#/components/schemas/Pet'
+              schema:
+                $ref: '#/components/schemas/Pet'
 
   /pet/findByStatus:
     get:
@@ -215,7 +226,7 @@ paths:
       tags:
         - pet
       summary: Updates a pet in the store with form data
-      description: ''
+      description: Updates a pet in the store with form data
       operationId: updatePetWithForm
       parameters:
         - name: petId
@@ -236,13 +247,22 @@ paths:
           schema:
             type: string
       responses:
+        '200':
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Pet'
         '405':
           description: Invalid input
     delete:
       tags:
         - pet
       summary: Deletes a pet
-      description: ''
+      description: Deletes a pet
       operationId: deletePet
       parameters:
         - name: petId
@@ -253,6 +273,8 @@ paths:
             type: integer
             format: int64
       responses:
+        '201':
+          description: successful operation
         '400':
           description: Invalid pet value
   '/pet/{petId}/uploadImage':
@@ -260,7 +282,7 @@ paths:
       tags:
         - pet
       summary: uploads an image
-      description: ''
+      description: uploads an image
       operationId: uploadFile
       parameters:
         - name: petId
@@ -344,8 +366,6 @@ components:
             wrapped: true
           items:
             $ref: '#/components/schemas/Tag'
-            xml:
-              name: tag
         status:
           type: string
           description: pet status in the store
@@ -368,13 +388,9 @@ components:
       xml:
         name: '##default'
       type: object
-  requestBodies:
-    Pet:
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Pet'
-        application/xml:
-          schema:
-            $ref: '#/components/schemas/Pet'
-      description: Pet object that needs to be added to the store
+
+  # securitySchemes:
+  #   keyauth:
+  #     type: apiKey
+  #     in: header
+  #     name: apikey

@@ -13,6 +13,7 @@ jobs:
       matrix:
         files:
           - petstore
+          - httpbin
     env:
       ADMIN_API_TOKEN: ${{ secrets.ADMIN_API_TOKEN }}
       ADMIN_API_URL: ${{ secrets.ADMIN_API_URL }}
@@ -59,6 +60,7 @@ jobs:
             --headers "Kong-Admin-Token:$ADMIN_API_TOKEN" \
             --kong-addr "$ADMIN_API_URL" \
             --workspace "$WORKSPACE_NAME" \
+            --select-tag "$SPEC_FILE_NAME" \
             --state "$SPEC_FILE_NAME-output.yaml"
       - name: Sync current config
         run: |
@@ -66,6 +68,7 @@ jobs:
             --headers "Kong-Admin-Token:$ADMIN_API_TOKEN" \
             --kong-addr "$ADMIN_API_URL" \
             --workspace "$WORKSPACE_NAME" \
+            --select-tag "$SPEC_FILE_NAME" \
             --state "$SPEC_FILE_NAME-output.yaml"
 
   deploy_to_dev_portal:
@@ -75,8 +78,6 @@ jobs:
       matrix:
         files:
           - petstore
-          # - httpbin
-          # - orders
     env:
       ADMIN_API_TOKEN: ${{ secrets.ADMIN_API_TOKEN }}
       ADMIN_API_URL: ${{ secrets.ADMIN_API_URL }}
