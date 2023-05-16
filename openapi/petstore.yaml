@@ -25,6 +25,15 @@ tags:
       description: Find out more
       url: 'http://swagger.io'
 
+x-kong-plugin-rate-limiting-advanced:
+  enabled: true
+  config:
+    namespace: apiops-demo
+    limit:
+    - 60
+    window_size:
+    - 60
+
 x-kong-plugin-cors:
   enabled: true
   config:
@@ -38,43 +47,41 @@ x-kong-plugin-application-registration:
     description: Petstore service
     display_name: Petstore
 
-x-kong-plugin-key-auth:
-  enabled: true
+security:
+  - keyauth: []
 
 paths:
   /pet:
-    # options:
-    #   tags:
-    #     - pet
-    #   summary: Add a new pet to the store
-    #   description: Add a new pet to the store
-    #   operationId: preFlightAddPet
-    #   responses:
-    #     '200':
-    #       description: Successful operation
-    #       content:
-    #         application/json:
-    #           schema:
-    #             $ref: '#/components/schemas/Pet'
-    #         application/xml:
-    #           schema:
-    #             $ref: '#/components/schemas/Pet'
-    #   requestBody:
-    #     description: Create a new pet in the store
-    #     required: true
-    #     content:
-    #       application/json:
-    #         schema:
-    #           $ref: '#/components/schemas/Pet'
-    #       application/xml:
-    #         schema:
-    #           $ref: '#/components/schemas/Pet'
-    #       application/x-www-form-urlencoded:
-    #         schema:
-    #           $ref: '#/components/schemas/Pet'
+    options:
+      tags:
+        - pet
+      summary: Add a new pet to the store
+      description: Add a new pet to the store
+      operationId: preFlightAddPet
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Pet'
+      requestBody:
+        description: Create a new pet in the store
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pet'
+          application/xml:
+            schema:
+              $ref: '#/components/schemas/Pet'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Pet'
     post:
-      # security:
-      #   - keyauth: []
       tags:
         - pet
       summary: Add a new pet to the store
@@ -389,8 +396,8 @@ components:
         name: '##default'
       type: object
 
-  # securitySchemes:
-  #   keyauth:
-  #     type: apiKey
-  #     in: header
-  #     name: apikey
+  securitySchemes:
+    keyauth:
+      type: apiKey
+      in: header
+      name: apikey
